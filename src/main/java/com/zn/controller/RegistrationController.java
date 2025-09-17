@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -82,17 +83,17 @@ private IPolymersRegistrationFormRepository polymerRegistrationFormRepository;
     private String getDomainFromRequest(HttpServletRequest request) {
         String origin = request.getHeader("Origin");
         String referer = request.getHeader("Referer");
-        
-        if ((origin != null && origin.contains("globallopmeet.com")) || 
+
+        if ((origin != null && origin.contains("globallopmeet.com")) ||
             (referer != null && referer.contains("globallopmeet.com"))) {
             return "optics";
-        } else if ((origin != null && origin.contains("nursingmeet2026.com")) || 
-                   (referer != null && referer.contains("nursingmeet2026.com"))) {
+        } else if ((origin != null && (origin.contains("nursingmeet2026.com") || origin.contains("localhost") || origin.contains("127.0.0.1"))) ||
+                   (referer != null && (referer.contains("nursingmeet2026.com") || referer.contains("localhost") || referer.contains("127.0.0.1")))) {
             return "nursing";
-        } else if ((origin != null && origin.contains("globalrenewablemeet.com")) || 
+        } else if ((origin != null && origin.contains("globalrenewablemeet.com")) ||
                    (referer != null && referer.contains("globalrenewablemeet.com"))) {
             return "renewable";
-        }else if ((origin != null && origin.contains("polyscienceconference.com")) || 
+        }else if ((origin != null && origin.contains("polyscienceconference.com")) ||
                    (referer != null && referer.contains("polyscienceconference.com"))) {
             return "polymers";
         }  else {
@@ -304,7 +305,7 @@ private IPolymersRegistrationFormRepository polymerRegistrationFormRepository;
     public ResponseEntity<?> getAllPricingConfigs(HttpServletRequest httpRequest) {
         String domain = getDomainFromRequest(httpRequest);
         log.info("Getting pricing configs for domain: {}", domain);
-        
+
         switch (domain) {
             case "optics":
                 return ResponseEntity.ok(opticsPricingConfigRepo.findAll());
@@ -312,9 +313,41 @@ private IPolymersRegistrationFormRepository polymerRegistrationFormRepository;
                 return ResponseEntity.ok(nursingPricingConfigRepo.findAll());
             case "renewable":
                 return ResponseEntity.ok(renewablePricingConfigRepo.findAll());
+            case "polymers":
+                return ResponseEntity.ok(polymerPricingConfigRepo.findAll());
             default:
                 log.warn("Unknown domain: {}, defaulting to nursing", domain);
                 return ResponseEntity.ok(nursingPricingConfigRepo.findAll());
+        }
+    }
+
+    @GetMapping("/pricing-config/{id}")
+    public ResponseEntity<?> getPricingConfigById(@PathVariable Long id, HttpServletRequest httpRequest) {
+        String domain = getDomainFromRequest(httpRequest);
+        log.info("Getting pricing config {} for domain: {}", id, domain);
+
+        switch (domain) {
+            case "optics":
+                return opticsPricingConfigRepo.findById(id)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build());
+            case "nursing":
+                return nursingPricingConfigRepo.findById(id)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build());
+            case "renewable":
+                return renewablePricingConfigRepo.findById(id)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build());
+            case "polymers":
+                return polymerPricingConfigRepo.findById(id)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build());
+            default:
+                log.warn("Unknown domain: {}, defaulting to nursing", domain);
+                return nursingPricingConfigRepo.findById(id)
+                        .map(ResponseEntity::ok)
+                        .orElse(ResponseEntity.notFound().build());
         }
     }
     

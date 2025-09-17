@@ -1358,6 +1358,14 @@ public NursingPaymentResponseDTO retrieveSession(String sessionId) throws Stripe
     }
 
     /**
+     * Get payment record by session ID for testing/debugging purposes
+     */
+    public NursingPaymentRecord getPaymentRecordBySessionId(String sessionId) {
+        log.info("Retrieving payment record for session ID: {}", sessionId);
+        return paymentRecordRepository.findBySessionId(sessionId).orElse(null);
+    }
+
+    /**
      * Validates and ensures that the request currency is EUR
      * If currency is null, sets it to EUR. If it's not EUR, throws exception.
      * @param request CheckoutRequest to validate and potentially modify
@@ -1370,7 +1378,7 @@ public NursingPaymentResponseDTO retrieveSession(String sessionId) throws Stripe
             log.info("Currency not specified, defaulting to EUR");
         } else if (!"eur".equalsIgnoreCase(request.getCurrency())) {
             throw new IllegalArgumentException(
-                String.format("Currency must be 'eur' - only Euro payments are supported. Received: '%s'. All amounts must be in euros and will be displayed in euros in the Stripe dashboard.", 
+                String.format("Currency must be 'eur' - only Euro payments are supported. Received: '%s'. All amounts must be in euros and will be displayed in euros in the Stripe dashboard.",
                 request.getCurrency()));
         }
     }

@@ -141,6 +141,9 @@ public class PaymentController {
         } else if (origin.contains("polyscienceconference.com")) {
             log.info("Processing Polymer checkout for domain: {}", origin);
             return handlePolymerCheckout(request, pricingConfigId);
+        } else if (origin.contains("localhost") || origin.contains("127.0.0.1")) {
+            log.info("Processing Nursing checkout for localhost development: {}", origin);
+            return handleNursingCheckout(request, pricingConfigId);
         } else {
             log.error("Unknown frontend domain: {}", origin);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -218,6 +221,9 @@ public class PaymentController {
             } else if (origin != null && origin.contains("polyscienceconference.com")) {
                 com.zn.payment.polymers.dto.PolymersPaymentResponseDTO responseDTO = polymersStripeService.retrieveSession(id);
                 return ResponseEntity.ok(responseDTO);
+            } else if (origin != null && (origin.contains("localhost") || origin.contains("127.0.0.1"))) {
+                NursingPaymentResponseDTO responseDTO = nursingStripeService.retrieveSession(id);
+                return ResponseEntity.ok(responseDTO);
             } else {
                 log.error("Unknown or missing domain origin: {}", origin);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -232,12 +238,12 @@ public class PaymentController {
     @PostMapping("/{id}/expire")
     public ResponseEntity<?> expireSession(@PathVariable String id, HttpServletRequest httpRequest) {
         log.info("Expiring checkout session with ID: {}", id);
-        
+
         String origin = httpRequest.getHeader("Origin");
         if (origin == null) {
             origin = httpRequest.getHeader("Referer");
         }
-        
+
         try {
             if (origin != null && origin.contains("globallopmeet.com")) {
                 OpticsPaymentResponseDTO responseDTO = opticsStripeService.expireSession(id);
@@ -251,6 +257,9 @@ public class PaymentController {
             } else if (origin != null && origin.contains("polyscienceconference.com")) {
                 com.zn.payment.polymers.dto.PolymersPaymentResponseDTO responseDTO = polymersStripeService.expireSession(id);
                 return ResponseEntity.ok(responseDTO);
+            } else if (origin != null && (origin.contains("localhost") || origin.contains("127.0.0.1"))) {
+                NursingPaymentResponseDTO responseDTO = nursingStripeService.expireSession(id);
+                return ResponseEntity.ok(responseDTO);
             } else {
                 log.error("Unknown or missing domain origin: {}", origin);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -258,6 +267,54 @@ public class PaymentController {
             }
         } catch (Exception e) {
             log.error("Error expiring checkout session: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(createErrorResponse("failed"));
+        }
+    }
+
+    @GetMapping("/record/{sessionId}")
+    public ResponseEntity<?> getPaymentRecord(@PathVariable String sessionId, HttpServletRequest httpRequest) {
+        log.info("Retrieving payment record for session ID: {}", sessionId);
+
+        String origin = httpRequest.getHeader("Origin");
+        if (origin == null) {
+            origin = httpRequest.getHeader("Referer");
+        }
+
+        try {
+            if (origin != null && origin.contains("globallopmeet.com")) {
+                // For optics, we need to implement similar logic
+                return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                        .body(createErrorResponse("optics_payment_record_not_implemented"));
+            } else if (origin != null && origin.contains("nursingmeet2026.com")) {
+                var paymentRecord = nursingStripeService.getPaymentRecordBySessionId(sessionId);
+                if (paymentRecord != null) {
+                    return ResponseEntity.ok(paymentRecord);
+                } else {
+                    return ResponseEntity.notFound().build();
+                }
+            } else if (origin != null && origin.contains("globalrenewablemeet.com")) {
+                // For renewable, we need to implement similar logic
+                return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                        .body(createErrorResponse("renewable_payment_record_not_implemented"));
+            } else if (origin != null && origin.contains("polyscienceconference.com")) {
+                // For polymers, we need to implement similar logic
+                return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED)
+                        .body(createErrorResponse("polymers_payment_record_not_implemented"));
+            } else if (origin != null && (origin.contains("localhost") || origin.contains("127.0.0.1"))) {
+                var paymentRecord = nursingStripeService.getPaymentRecordBySessionId(sessionId);
+                if (paymentRecord != null) {
+                    return ResponseEntity.ok(paymentRecord);
+                } else {
+                    return ResponseEntity.notFound().build();
+                }
+            } else {
+                log.error("Unknown or missing domain origin: {}", origin);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(createErrorResponse("unknown_domain_or_missing_origin"));
+            }
+        } catch (Exception e) {
+            log.error("Error retrieving payment record: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(createErrorResponse("failed"));
         }
@@ -451,7 +508,7 @@ public class PaymentController {
                         opticsStripeService.processWebhookEvent(event);
                         log.info("✅ Webhook processed by Optics service by success_url");
                         return ResponseEntity.ok().body("Webhook processed by Optics service by success_url");
-                    } else if (urlLower.contains("nursingmeet2026.com") || urlLower.contains("nursing")) {
+                    } else if (urlLower.contains("nursingmeet2026.com") || urlLower.contains("nursing") || urlLower.contains("localhost") || urlLower.contains("127.0.0.1")) {
                         log.info("[Webhook Debug] Routing to Nursing service by success_url/domain match.");
                         nursingStripeService.processWebhookEvent(event);
                         log.info("✅ Webhook processed by Nursing service by success_url");
@@ -1055,3 +1112,4 @@ public class PaymentController {
         }
     }
 }
+

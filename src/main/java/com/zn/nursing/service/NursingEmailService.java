@@ -25,7 +25,7 @@ public class NursingEmailService {
                 "Email: " + email + "\n\n" +
                 "Message:\n" + messageBody
             );
-            message.setFrom("secretary@globalrenewablemeet.com"); // Must match SMTP username
+            message.setFrom("secretary@nursingmeet2026.com"); // Must match SMTP username
             message.setReplyTo(email); // Allows replying directly to user
             
 
